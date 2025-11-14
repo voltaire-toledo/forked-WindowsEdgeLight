@@ -13,7 +13,6 @@
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
-        WindowState="Maximized"
         Loaded="Window_Loaded"
         KeyDown="Window_KeyDown">
     

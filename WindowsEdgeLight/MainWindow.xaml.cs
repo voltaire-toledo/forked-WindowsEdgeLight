@@ -22,31 +22,46 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        SetupWindow();
     }
 
     private void SetupWindow()
     {
-        var workingArea = SystemParameters.WorkArea;
-        var screenWidth = workingArea.Width;
-        var screenHeight = workingArea.Height;
-
-        this.Left = workingArea.Left;
-        this.Top = workingArea.Top;
-        this.Width = screenWidth;
-        this.Height = screenHeight;
+        var primaryScreen = System.Windows.Forms.Screen.PrimaryScreen;
+        if (primaryScreen == null) return;
+        
+        var bounds = primaryScreen.Bounds;
+        
+        // Get DPI scale factor
+        var source = PresentationSource.FromVisual(this);
+        double dpiScaleX = 1.0;
+        double dpiScaleY = 1.0;
+        
+        if (source != null)
+        {
+            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+        }
+        
+        // Convert physical pixels to WPF DIPs
+        this.Left = bounds.X / dpiScaleX;
+        this.Top = bounds.Y / dpiScaleY;
+        this.Width = bounds.Width / dpiScaleX;
+        this.Height = bounds.Height / dpiScaleY;
+        this.WindowState = System.Windows.WindowState.Normal;
 
         EdgeLightBorder.Margin = new Thickness(20);
     }
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        SetupWindow();
+        
         var hwnd = new WindowInteropHelper(this).Handle;
         int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
     }
 
-    private void Window_KeyDown(object sender, KeyEventArgs e)
+    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == Key.L && 
             (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && 
@@ -56,7 +71,7 @@ public partial class MainWindow : Window
         }
         else if (e.Key == Key.Escape)
         {
-            Application.Current.Shutdown();
+            System.Windows.Application.Current.Shutdown();
         }
     }
 
@@ -85,7 +100,7 @@ public partial class MainWindow : Window
 
     private void Close_Click(object sender, RoutedEventArgs e)
     {
-        Application.Current.Shutdown();
+        System.Windows.Application.Current.Shutdown();
     }
 
     private const int GWL_EXSTYLE = -20;
