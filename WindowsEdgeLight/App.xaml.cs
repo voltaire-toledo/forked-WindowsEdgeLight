@@ -16,6 +16,8 @@ public partial class App : System.Windows.Application
         // Default pattern (win-x64) will match our ZIP assets
         // ZIP files contain clean WindowsEdgeLight.exe inside
         FetchOnlyLatestRelease = true, // Saves GitHub API rate limits
+        // Specify the executable name inside the ZIP (without .exe extension)
+        InstallUpdateSingleFileExecutableName = "WindowsEdgeLight",
         // For MSI installer, show basic UI during installation
         InstallUpdateWindowsInstallerArguments = "/qb",
     };
@@ -84,10 +86,6 @@ public partial class App : System.Windows.Application
                     "Download Failed", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
-
-            // DEBUG: Show what we got
-            MessageBox.Show($"Downloaded to:\n{downloadedAsset.FilePath}\n\nExists: {System.IO.File.Exists(downloadedAsset.FilePath)}\n\nClick OK to continue...",
-                "Debug Info", MessageBoxButton.OK, MessageBoxImage.Information);
 
             // Verify the file still exists
             if (!System.IO.File.Exists(downloadedAsset.FilePath))
