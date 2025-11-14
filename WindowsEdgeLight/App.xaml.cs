@@ -13,10 +13,10 @@ public partial class App : System.Windows.Application
 {
     internal static readonly UpdatumManager AppUpdater = new("shanselman", "WindowsEdgeLight")
     {
-        // Asset pattern matches: WindowsEdgeLight-v0.6-win-x64.exe or .zip
-        AssetRegexPattern = $"WindowsEdgeLight.*win-x64",
-        // Note: Removed AssetExtensionFilter to let Updatum choose the best option
-        // EXE files work better on Windows (less antivirus interference)
+        // Default pattern (win-x64) will match our assets
+        // Prefer EXE to avoid Windows Defender/antivirus blocking ZIP extraction
+        AssetExtensionFilter = ".exe",
+        FetchOnlyLatestRelease = true, // Saves GitHub API rate limits
         // For MSI installer, show basic UI during installation
         InstallUpdateWindowsInstallerArguments = "/qb",
     };
