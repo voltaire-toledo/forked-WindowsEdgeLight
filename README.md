@@ -29,7 +29,7 @@ The application creates a smooth, glowing border around the edges of your primar
 ### Prerequisites
 
 - Windows 10 or later
-- .NET 8.0 Runtime (Windows Desktop)
+- .NET 10.0 Runtime (Windows Desktop)
 
 ### Building from Source
 
@@ -71,8 +71,8 @@ The application creates a smooth, glowing border around the edges of your primar
 
 ### Architecture
 
-- **Framework**: .NET 8.0 WPF (Windows Presentation Foundation)
-- **Language**: C# 
+- **Framework**: .NET 10.0 WPF (Windows Presentation Foundation)
+- **Language**: C#
 - **UI**: XAML with transparent window overlay
 - **Monitor Detection**: Windows Forms Screen API for accurate multi-monitor support
 
@@ -111,7 +111,7 @@ WindowsEdgeLight/
 
 Requires:
 - Visual Studio 2022 or later (with .NET desktop development workload)
-- Or .NET 8.0 SDK for command-line builds
+- Or .NET 10.0 SDK for command-line builds
 
 ## Version History
 
@@ -152,4 +152,4 @@ Inspired by the need for professional lighting effects during video conferences 
 
 ---
 
-**Note**: This application is designed for Windows only and requires the .NET 8.0 runtime.
+**Note**: This application is designed for Windows only and requires the .NET 10.0 runtime.

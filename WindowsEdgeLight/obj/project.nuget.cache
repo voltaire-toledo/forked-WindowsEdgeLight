@@ -1,11 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "Gl7ovCDuCIQ=",
+  "dgSpecHash": "AGNA7raojck=",
   "success": true,
   "projectFilePath": "D:\\github\\WindowsEdgeLight\\WindowsEdgeLight\\WindowsEdgeLight.csproj",
-  "expectedPackageFiles": [
-    "D:\\packages\\NuGet\\cache\\microsoft.win32.systemevents\\8.0.0\\microsoft.win32.systemevents.8.0.0.nupkg.sha512",
-    "D:\\packages\\NuGet\\cache\\system.drawing.common\\8.0.0\\system.drawing.common.8.0.0.nupkg.sha512"
-  ],
+  "expectedPackageFiles": [],
   "logs": []
 }
