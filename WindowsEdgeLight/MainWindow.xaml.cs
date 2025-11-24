@@ -931,10 +931,43 @@ Version {version}";
                 window.Top = screen.WorkingArea.Y / dpiY;
                 window.Width = screen.WorkingArea.Width / dpiX;
                 window.Height = screen.WorkingArea.Height / dpiY;
+
+                // Recalculate geometry for new window size
+                UpdateMonitorGeometry(ctx);
             }
         };
 
         return ctx;
+    }
+
+    private void UpdateMonitorGeometry(MonitorWindowContext ctx)
+    {
+        double width = ctx.Window.Width - 40;
+        double height = ctx.Window.Height - 40;
+        const double frameThickness = 80;
+        const double outerRadius = 100;
+        const double innerRadius = 60;
+        
+        var outerRect = new RectangleGeometry(new Rect(0, 0, width, height), outerRadius, outerRadius);
+        var innerRect = new RectangleGeometry(
+            new Rect(frameThickness, frameThickness, 
+                    width - (frameThickness * 2), 
+                    height - (frameThickness * 2)), 
+            innerRadius, innerRadius);
+        
+        var frameGeometry = new CombinedGeometry(GeometryCombineMode.Exclude, outerRect, innerRect);
+        
+        ctx.BaseGeometry = frameGeometry;
+        ctx.BorderPath.Data = frameGeometry;
+        
+        ctx.PathOffsetX = (ctx.Window.Width - width) / 2.0;
+        ctx.PathOffsetY = (ctx.Window.Height - height) / 2.0;
+        
+        double ringDiameter = ctx.HoverRing.Width;
+        double holeRadius = ringDiameter / 2.0;
+        
+        ctx.FrameOuterRect = new Rect(ctx.PathOffsetX - holeRadius, ctx.PathOffsetY - holeRadius, width + holeRadius * 2, height + holeRadius * 2);
+        ctx.FrameInnerRect = new Rect(ctx.PathOffsetX + frameThickness + holeRadius, ctx.PathOffsetY + frameThickness + holeRadius, width - (frameThickness * 2) - holeRadius * 2, height - (frameThickness * 2) - holeRadius * 2);
     }
 
     public bool IsShowingOnAllMonitors()
