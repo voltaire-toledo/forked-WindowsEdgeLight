@@ -7,7 +7,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using System.Diagnostics;
 
 namespace WindowsEdgeLight;
 
@@ -381,8 +380,6 @@ Version {version}";
                     hoverCursorRing.Visibility = Visibility.Visible;
                 }
 
-                Debug.WriteLine($"[Main] Screen:({screenX},{screenY}) Window:({windowPt.X:F2},{windowPt.Y:F2}) Ring:({Canvas.GetLeft(hoverCursorRing):F2},{Canvas.GetTop(hoverCursorRing):F2})");
-
                 // Punch a transparent hole under the ring by excluding a circle geometry from the frame
                 // Convert window coordinates to geometry local coordinates by subtracting stored offsets
                 var localCenter = new System.Windows.Point(windowPt.X - pathOffsetX, windowPt.Y - pathOffsetY);
@@ -447,8 +444,6 @@ Version {version}";
                     
                     if (ctx.HoverRing.Visibility != Visibility.Visible)
                         ctx.HoverRing.Visibility = Visibility.Visible;
-
-                    Debug.WriteLine($"[Monitor {monitorIdx}] Screen:({screenX},{screenY}) Window:({windowPt.X:F2},{windowPt.Y:F2}) RingMargin:({ctx.HoverRing.Margin.Left:F2},{ctx.HoverRing.Margin.Top:F2})");
 
                     var localCenter = new System.Windows.Point(windowPt.X - ctx.PathOffsetX, windowPt.Y - ctx.PathOffsetY);
                     var hole = new EllipseGeometry(localCenter, holeRadius, holeRadius);
@@ -775,13 +770,6 @@ Version {version}";
     {
         // Refresh monitor list
         availableMonitors = Screen.AllScreens;
-        
-        Debug.WriteLine($"[Topology] Primary DPI Scale: {_dpiScaleX:F2},{_dpiScaleY:F2}");
-        for (int i = 0; i < availableMonitors.Length; i++)
-        {
-            var s = availableMonitors[i];
-            Debug.WriteLine($"[Topology] Monitor {i}: Bounds:{s.Bounds} WorkingArea:{s.WorkingArea} Primary:{s.Primary}");
-        }
 
         // Close any existing additional windows
         HideAdditionalMonitorWindows();
@@ -794,7 +782,6 @@ Version {version}";
                 var monitorCtx = CreateMonitorWindow(availableMonitors[i]);
                 additionalMonitorWindows.Add(monitorCtx);
                 monitorCtx.Window.Show();
-                Debug.WriteLine($"[Window Creation] Monitor {i}: Window Left:{monitorCtx.Window.Left:F2} Top:{monitorCtx.Window.Top:F2} Width:{monitorCtx.Window.Width:F2} Height:{monitorCtx.Window.Height:F2}");
             }
         }
     }
@@ -944,8 +931,6 @@ Version {version}";
                 window.Top = screen.WorkingArea.Y / dpiY;
                 window.Width = screen.WorkingArea.Width / dpiX;
                 window.Height = screen.WorkingArea.Height / dpiY;
-                
-                Debug.WriteLine($"[DPI Update] Monitor Bounds:{screen.Bounds} DPI:{dpiX:F2},{dpiY:F2} New Window Rect:{window.Left:F2},{window.Top:F2} {window.Width:F2}x{window.Height:F2}");
             }
         };
 
