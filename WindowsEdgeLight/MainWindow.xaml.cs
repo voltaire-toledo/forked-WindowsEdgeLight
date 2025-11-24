@@ -25,6 +25,10 @@ public partial class MainWindow : Window
     private const double ColorTempStep = 0.1;
     private const double MinColorTemp = 0.0;
     private const double MaxColorTemp = 1.0;
+
+    // DPI Scale
+    private double _dpiScaleX = 1.0;
+    private double _dpiScaleY = 1.0;
     
     private NotifyIcon? notifyIcon;
     private ControlWindow? controlWindow;
@@ -32,6 +36,7 @@ public partial class MainWindow : Window
     private class MonitorWindowContext
     {
         public Window Window { get; set; } = null!;
+        public Screen Screen { get; set; } = null!;
         public System.Windows.Shapes.Path BorderPath { get; set; } = null!;
         public Ellipse HoverRing { get; set; } = null!;
         public Geometry BaseGeometry { get; set; } = null!;
@@ -228,20 +233,20 @@ Version {version}";
         
         // Get DPI scale factor
         var source = PresentationSource.FromVisual(this);
-        double dpiScaleX = 1.0;
-        double dpiScaleY = 1.0;
+        _dpiScaleX = 1.0;
+        _dpiScaleY = 1.0;
         
         if (source != null)
         {
-            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
-            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+            _dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            _dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
         }
         
         // Convert physical pixels to WPF DIPs
-        this.Left = workingArea.X / dpiScaleX;
-        this.Top = workingArea.Y / dpiScaleY;
-        this.Width = workingArea.Width / dpiScaleX;
-        this.Height = workingArea.Height / dpiScaleY;
+        this.Left = workingArea.X / _dpiScaleX;
+        this.Top = workingArea.Y / _dpiScaleY;
+        this.Width = workingArea.Width / _dpiScaleX;
+        this.Height = workingArea.Height / _dpiScaleY;
         this.WindowState = System.Windows.WindowState.Normal;
     }
 
@@ -408,7 +413,12 @@ Version {version}";
             monitorIdx++;
             try
             {
-                var windowPt = ctx.Window.PointFromScreen(new System.Windows.Point(screenX, screenY));
+                // Manual coordinate calculation to avoid PointFromScreen issues across monitors/DPIs
+                // We positioned the window using _dpiScaleX/Y relative to the screen WorkingArea.
+                // So we reverse that logic here.
+                double relX = (screenX - ctx.Screen.WorkingArea.X) / _dpiScaleX;
+                double relY = (screenY - ctx.Screen.WorkingArea.Y) / _dpiScaleY;
+                var windowPt = new System.Windows.Point(relX, relY);
                 
                 bool inFrameBand = ctx.FrameOuterRect.Contains(windowPt) && !ctx.FrameInnerRect.Contains(windowPt);
                 
@@ -803,20 +813,12 @@ Version {version}";
 
         // Position on the target screen
         var workingArea = screen.WorkingArea;
-        var source = PresentationSource.FromVisual(this);
-        double dpiScaleX = 1.0;
-        double dpiScaleY = 1.0;
+        // Use stored DPI scale from main window to ensure consistency
         
-        if (source != null)
-        {
-            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
-            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
-        }
-        
-        window.Left = workingArea.X / dpiScaleX;
-        window.Top = workingArea.Y / dpiScaleY;
-        window.Width = workingArea.Width / dpiScaleX;
-        window.Height = workingArea.Height / dpiScaleY;
+        window.Left = workingArea.X / _dpiScaleX;
+        window.Top = workingArea.Y / _dpiScaleY;
+        window.Width = workingArea.Width / _dpiScaleX;
+        window.Height = workingArea.Height / _dpiScaleY;
 
         // Create the grid and edge light border
         var grid = new System.Windows.Controls.Grid { IsHitTestVisible = false };
@@ -906,6 +908,7 @@ Version {version}";
         return new MonitorWindowContext
         {
             Window = window,
+            Screen = screen,
             BorderPath = path,
             HoverRing = hoverRing,
             BaseGeometry = frameGeometry,
