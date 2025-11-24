@@ -28,11 +28,23 @@ public partial class MainWindow : Window
     private NotifyIcon? notifyIcon;
     private ControlWindow? controlWindow;
 
+    private class MonitorWindowContext
+    {
+        public Window Window { get; set; } = null!;
+        public System.Windows.Shapes.Path BorderPath { get; set; } = null!;
+        public Ellipse HoverRing { get; set; } = null!;
+        public Geometry BaseGeometry { get; set; } = null!;
+        public Rect FrameOuterRect { get; set; }
+        public Rect FrameInnerRect { get; set; }
+        public double PathOffsetX { get; set; }
+        public double PathOffsetY { get; set; }
+    }
+
     // Monitor management
     private int currentMonitorIndex = 0;
     private Screen[] availableMonitors = Array.Empty<Screen>();
     private bool showOnAllMonitors = false;
-    private List<Window> additionalMonitorWindows = new List<Window>();
+    private List<MonitorWindowContext> additionalMonitorWindows = new List<MonitorWindowContext>();
 
     // Global hotkey IDs
     private const int HOTKEY_TOGGLE = 1;
@@ -316,62 +328,128 @@ Version {version}";
                 EdgeLightBorder.Data = baseFrameGeometry;
             }
 
+            // Also handle additional windows
+            foreach (var ctx in additionalMonitorWindows)
+            {
+                if (ctx.BorderPath.Visibility != Visibility.Collapsed)
+                    ctx.BorderPath.Visibility = Visibility.Collapsed;
+                if (ctx.HoverRing.Visibility != Visibility.Collapsed)
+                    ctx.HoverRing.Visibility = Visibility.Collapsed;
+                if (ctx.BorderPath.Data != ctx.BaseGeometry)
+                    ctx.BorderPath.Data = ctx.BaseGeometry;
+            }
+
             return;
         }
-        if (frameOuterRect == null || frameInnerRect == null || hoverCursorRing == null || baseFrameGeometry == null)
+
+        // --- Main Window Logic ---
+        if (frameOuterRect != null && frameInnerRect != null && hoverCursorRing != null && baseFrameGeometry != null)
         {
-            return;
+            var windowPt = PointFromScreen(new System.Windows.Point(screenX, screenY));
+
+            // Existing frame band detection (outer minus inner)
+            bool inFrameBand = frameOuterRect.Value.Contains(windowPt) && !frameInnerRect.Value.Contains(windowPt);
+
+            // Early detection zone just inside the inner edge: a band with thickness = hole radius (cursor ring radius)
+            double ringDiameter = hoverCursorRing.Width;
+            double holeRadius = ringDiameter / 2; // match ring size
+            var innerProximityRect = new Rect(
+                frameInnerRect.Value.X + holeRadius,
+                frameInnerRect.Value.Y + holeRadius,
+                frameInnerRect.Value.Width - (holeRadius * 2),
+                frameInnerRect.Value.Height - (holeRadius * 2));
+
+            // Near from inside means inside innerRect but within holeRadius of its edge (i.e., not deep inside innerProximityRect)
+            bool nearFromInside = frameInnerRect.Value.Contains(windowPt) && !innerProximityRect.Contains(windowPt);
+
+            bool overFrame = inFrameBand || nearFromInside;
+
+            if (overFrame)
+            {
+                Canvas.SetLeft(hoverCursorRing, windowPt.X - ringDiameter / 2);
+                Canvas.SetTop(hoverCursorRing, windowPt.Y - ringDiameter / 2);
+                if (hoverCursorRing.Visibility != Visibility.Visible)
+                {
+                    hoverCursorRing.Visibility = Visibility.Visible;
+                }
+
+                // Punch a transparent hole under the ring by excluding a circle geometry from the frame
+                // Convert window coordinates to geometry local coordinates by subtracting stored offsets
+                var localCenter = new System.Windows.Point(windowPt.X - pathOffsetX, windowPt.Y - pathOffsetY);
+                var hole = new EllipseGeometry(localCenter, holeRadius, holeRadius);
+                EdgeLightBorder.Data = new CombinedGeometry(GeometryCombineMode.Exclude, baseFrameGeometry, hole);
+            }
+            else
+            {
+                if (hoverCursorRing.Visibility != Visibility.Collapsed)
+                {
+                    hoverCursorRing.Visibility = Visibility.Collapsed;
+                }
+
+                if (EdgeLightBorder.Visibility != Visibility.Visible)
+                {
+                    EdgeLightBorder.Visibility = Visibility.Visible;
+                }
+                // Restore original geometry (remove hole)
+                if (baseFrameGeometry != null && EdgeLightBorder.Data != baseFrameGeometry)
+                {
+                    EdgeLightBorder.Data = baseFrameGeometry;
+                }
+            }
         }
 
-        var windowPt = PointFromScreen(new System.Windows.Point(screenX, screenY));
-
-        // Existing frame band detection (outer minus inner)
-        bool inFrameBand = frameOuterRect.Value.Contains(windowPt) && !frameInnerRect.Value.Contains(windowPt);
-
-        // Early detection zone just inside the inner edge: a band with thickness = hole radius (cursor ring radius)
-        double ringDiameter = hoverCursorRing.Width;
-        double holeRadius = ringDiameter / 2; // match ring size
-        var innerProximityRect = new Rect(
-            frameInnerRect.Value.X + holeRadius,
-            frameInnerRect.Value.Y + holeRadius,
-            frameInnerRect.Value.Width - (holeRadius * 2),
-            frameInnerRect.Value.Height - (holeRadius * 2));
-
-        // Near from inside means inside innerRect but within holeRadius of its edge (i.e., not deep inside innerProximityRect)
-        bool nearFromInside = frameInnerRect.Value.Contains(windowPt) && !innerProximityRect.Contains(windowPt);
-
-        bool overFrame = inFrameBand || nearFromInside;
-
-        if (overFrame)
+        // --- Additional Windows Logic ---
+        foreach (var ctx in additionalMonitorWindows)
         {
-            Canvas.SetLeft(hoverCursorRing, windowPt.X - ringDiameter / 2);
-            Canvas.SetTop(hoverCursorRing, windowPt.Y - ringDiameter / 2);
-            if (hoverCursorRing.Visibility != Visibility.Visible)
+            try
             {
-                hoverCursorRing.Visibility = Visibility.Visible;
-            }
+                var windowPt = ctx.Window.PointFromScreen(new System.Windows.Point(screenX, screenY));
+                
+                bool inFrameBand = ctx.FrameOuterRect.Contains(windowPt) && !ctx.FrameInnerRect.Contains(windowPt);
+                
+                double ringDiameter = ctx.HoverRing.Width;
+                double holeRadius = ringDiameter / 2;
+                var innerProximityRect = new Rect(
+                    ctx.FrameInnerRect.X + holeRadius,
+                    ctx.FrameInnerRect.Y + holeRadius,
+                    ctx.FrameInnerRect.Width - (holeRadius * 2),
+                    ctx.FrameInnerRect.Height - (holeRadius * 2));
+                
+                bool nearFromInside = ctx.FrameInnerRect.Contains(windowPt) && !innerProximityRect.Contains(windowPt);
+                bool overFrame = inFrameBand || nearFromInside;
 
-            // Punch a transparent hole under the ring by excluding a circle geometry from the frame
-            // Convert window coordinates to geometry local coordinates by subtracting stored offsets
-            var localCenter = new System.Windows.Point(windowPt.X - pathOffsetX, windowPt.Y - pathOffsetY);
-            var hole = new EllipseGeometry(localCenter, holeRadius, holeRadius);
-            EdgeLightBorder.Data = new CombinedGeometry(GeometryCombineMode.Exclude, baseFrameGeometry, hole);
-        }
-        else
-        {
-            if (hoverCursorRing.Visibility != Visibility.Collapsed)
-            {
-                hoverCursorRing.Visibility = Visibility.Collapsed;
-            }
+                if (overFrame)
+                {
+                    // For Grid/Canvas positioning, we need to check how the ring is added.
+                    // In CreateMonitorWindow, we added it to a Grid. Grid doesn't support Canvas.SetLeft/Top directly unless it's in a Canvas.
+                    // Wait, CreateMonitorWindow adds it to a Grid.
+                    // I should have used a Canvas or set Margins.
+                    // Let's assume I can set Margins for now since it's in a Grid.
+                    
+                    ctx.HoverRing.Margin = new Thickness(windowPt.X - ringDiameter / 2, windowPt.Y - ringDiameter / 2, 0, 0);
+                    
+                    if (ctx.HoverRing.Visibility != Visibility.Visible)
+                        ctx.HoverRing.Visibility = Visibility.Visible;
 
-            if (EdgeLightBorder.Visibility != Visibility.Visible)
-            {
-                EdgeLightBorder.Visibility = Visibility.Visible;
+                    var localCenter = new System.Windows.Point(windowPt.X - ctx.PathOffsetX, windowPt.Y - ctx.PathOffsetY);
+                    var hole = new EllipseGeometry(localCenter, holeRadius, holeRadius);
+                    ctx.BorderPath.Data = new CombinedGeometry(GeometryCombineMode.Exclude, ctx.BaseGeometry, hole);
+                }
+                else
+                {
+                    if (ctx.HoverRing.Visibility != Visibility.Collapsed)
+                        ctx.HoverRing.Visibility = Visibility.Collapsed;
+                    
+                    if (ctx.BorderPath.Visibility != Visibility.Visible)
+                        ctx.BorderPath.Visibility = Visibility.Visible;
+                        
+                    if (ctx.BorderPath.Data != ctx.BaseGeometry)
+                        ctx.BorderPath.Data = ctx.BaseGeometry;
+                }
             }
-            // Restore original geometry (remove hole)
-            if (baseFrameGeometry != null && EdgeLightBorder.Data != baseFrameGeometry)
+            catch (InvalidOperationException)
             {
-                EdgeLightBorder.Data = baseFrameGeometry;
+                // Can happen if window is closing or not ready
             }
         }
     }
@@ -534,35 +612,31 @@ Version {version}";
 
     private void UpdateAdditionalMonitorWindows()
     {
-        foreach (var window in additionalMonitorWindows)
+        foreach (var ctx in additionalMonitorWindows)
         {
-            if (window.Content is System.Windows.Controls.Grid grid && 
-                grid.Children.Count > 0 && 
-                grid.Children[0] is System.Windows.Shapes.Path path)
+            var path = ctx.BorderPath;
+            path.Opacity = currentOpacity;
+            path.Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed;
+            
+            // Update color temperature
+            if (path.Fill is LinearGradientBrush brush && brush.GradientStops.Count >= 3)
             {
-                path.Opacity = currentOpacity;
-                path.Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed;
+                var cool = System.Windows.Media.Color.FromRgb(220, 235, 255);
+                var warm = System.Windows.Media.Color.FromRgb(255, 220, 180);
                 
-                // Update color temperature
-                if (path.Fill is LinearGradientBrush brush && brush.GradientStops.Count >= 3)
+                System.Windows.Media.Color Lerp(System.Windows.Media.Color a, System.Windows.Media.Color b, double t)
                 {
-                    var cool = System.Windows.Media.Color.FromRgb(220, 235, 255);
-                    var warm = System.Windows.Media.Color.FromRgb(255, 220, 180);
-                    
-                    System.Windows.Media.Color Lerp(System.Windows.Media.Color a, System.Windows.Media.Color b, double t)
+                    byte LerpByte(byte x, byte y, double tt) => (byte)(x + (y - x) * tt);
+                    return System.Windows.Media.Color.FromArgb(255, LerpByte(a.R, b.R, t), LerpByte(a.G, b.G, t), LerpByte(a.B, b.B, t));
+                }
+                
+                var midColor = Lerp(cool, warm, _colorTemperature);
+                
+                foreach (var stop in brush.GradientStops)
+                {
+                    if (stop.Offset is > 0.2 and < 0.8)
                     {
-                        byte LerpByte(byte x, byte y, double tt) => (byte)(x + (y - x) * tt);
-                        return System.Windows.Media.Color.FromArgb(255, LerpByte(a.R, b.R, t), LerpByte(a.G, b.G, t), LerpByte(a.B, b.B, t));
-                    }
-                    
-                    var midColor = Lerp(cool, warm, _colorTemperature);
-                    
-                    foreach (var stop in brush.GradientStops)
-                    {
-                        if (stop.Offset is > 0.2 and < 0.8)
-                        {
-                            stop.Color = midColor;
-                        }
+                        stop.Color = midColor;
                     }
                 }
             }
@@ -691,23 +765,23 @@ Version {version}";
         {
             if (i != currentMonitorIndex)
             {
-                var monitorWindow = CreateMonitorWindow(availableMonitors[i]);
-                additionalMonitorWindows.Add(monitorWindow);
-                monitorWindow.Show();
+                var monitorCtx = CreateMonitorWindow(availableMonitors[i]);
+                additionalMonitorWindows.Add(monitorCtx);
+                monitorCtx.Window.Show();
             }
         }
     }
 
     private void HideAdditionalMonitorWindows()
     {
-        foreach (var window in additionalMonitorWindows)
+        foreach (var ctx in additionalMonitorWindows)
         {
-            window.Close();
+            ctx.Window.Close();
         }
         additionalMonitorWindows.Clear();
     }
 
-    private Window CreateMonitorWindow(Screen screen)
+    private MonitorWindowContext CreateMonitorWindow(Screen screen)
     {
         var window = new Window
         {
@@ -770,6 +844,20 @@ Version {version}";
             Color = System.Windows.Media.Color.FromRgb(255, 255, 255)
         };
 
+        // Create hover ring (Ellipse)
+        var hoverRing = new Ellipse
+        {
+            Width = 140,
+            Height = 140,
+            Fill = System.Windows.Media.Brushes.Transparent,
+            Visibility = Visibility.Collapsed,
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+            VerticalAlignment = System.Windows.VerticalAlignment.Top
+        };
+        // Add drop shadow to ring - actually main window doesn't seem to have this on the ring itself?
+        // Main window XAML doesn't show effect on HoverCursorRing.
+        // So removing effect to match.
+        
         // Create frame geometry
         double width = window.Width - 40;
         double height = window.Height - 40;
@@ -788,6 +876,7 @@ Version {version}";
         path.Data = frameGeometry;
 
         grid.Children.Add(path);
+        grid.Children.Add(hoverRing);
         window.Content = grid;
 
         // Make window click-through
@@ -798,7 +887,26 @@ Version {version}";
             SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
         };
 
-        return window;
+        // Calculate geometry data for hole punch
+        double pathOffsetX = (window.Width - width) / 2.0;
+        double pathOffsetY = (window.Height - height) / 2.0;
+        
+        double ringDiameter = hoverRing.Width;
+        double holeRadius = ringDiameter / 2.0;
+        var frameOuterRect = new Rect(pathOffsetX - holeRadius, pathOffsetY - holeRadius, width + holeRadius * 2, height + holeRadius * 2);
+        var frameInnerRect = new Rect(pathOffsetX + frameThickness + holeRadius, pathOffsetY + frameThickness + holeRadius, width - (frameThickness * 2) - holeRadius * 2, height - (frameThickness * 2) - holeRadius * 2);
+
+        return new MonitorWindowContext
+        {
+            Window = window,
+            BorderPath = path,
+            HoverRing = hoverRing,
+            BaseGeometry = frameGeometry,
+            FrameOuterRect = frameOuterRect,
+            FrameInnerRect = frameInnerRect,
+            PathOffsetX = pathOffsetX,
+            PathOffsetY = pathOffsetY
+        };
     }
 
     public bool IsShowingOnAllMonitors()
