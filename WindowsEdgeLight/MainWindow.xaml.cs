@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     
     private NotifyIcon? notifyIcon;
     private ControlWindow? controlWindow;
+    // Tracks whether the control window should be visible (controls initial visibility and toggle state)
     private bool isControlWindowVisible = true;
     private ToolStripMenuItem? toggleControlsMenuItem;
 
@@ -104,7 +105,7 @@ public partial class MainWindow : Window
     contextMenu.Items.Add(new ToolStripSeparator());
     
     // Add toggle controls menu item - text will be set by UpdateTrayMenuToggleControlsText
-    toggleControlsMenuItem = new ToolStripMenuItem("", null, (s, e) => ToggleControlsVisibility());
+    toggleControlsMenuItem = new ToolStripMenuItem("🎛️ Hide Controls" + ToggleControlsHotkeyText, null, (s, e) => ToggleControlsVisibility());
     contextMenu.Items.Add(toggleControlsMenuItem);
     
     contextMenu.Items.Add(new ToolStripSeparator());
