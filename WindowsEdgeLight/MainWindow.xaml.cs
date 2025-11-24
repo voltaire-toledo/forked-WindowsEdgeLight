@@ -341,6 +341,29 @@ Version {version}";
             {
                 path.Opacity = currentOpacity;
                 path.Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed;
+                
+                // Update color temperature
+                if (path.Fill is LinearGradientBrush brush && brush.GradientStops.Count >= 3)
+                {
+                    var cool = System.Windows.Media.Color.FromRgb(220, 235, 255);
+                    var warm = System.Windows.Media.Color.FromRgb(255, 220, 180);
+                    
+                    System.Windows.Media.Color Lerp(System.Windows.Media.Color a, System.Windows.Media.Color b, double t)
+                    {
+                        byte LerpByte(byte x, byte y, double tt) => (byte)(x + (y - x) * tt);
+                        return System.Windows.Media.Color.FromArgb(255, LerpByte(a.R, b.R, t), LerpByte(a.G, b.G, t), LerpByte(a.B, b.B, t));
+                    }
+                    
+                    var midColor = Lerp(cool, warm, _colorTemperature);
+                    
+                    foreach (var stop in brush.GradientStops)
+                    {
+                        if (stop.Offset is > 0.2 and < 0.8)
+                        {
+                            stop.Color = midColor;
+                        }
+                    }
+                }
             }
         }
     }
@@ -391,6 +414,9 @@ Version {version}";
                 }
             }
         }
+        
+        // Update all additional monitor windows
+        UpdateAdditionalMonitorWindows();
     }
 
     public void MoveToNextMonitor()
