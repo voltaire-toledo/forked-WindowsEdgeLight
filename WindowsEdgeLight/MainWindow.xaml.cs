@@ -29,6 +29,8 @@ public partial class MainWindow : Window
     // Monitor management
     private int currentMonitorIndex = 0;
     private Screen[] availableMonitors = Array.Empty<Screen>();
+    private bool showOnAllMonitors = false;
+    private List<Window> additionalMonitorWindows = new List<Window>();
 
     // Global hotkey IDs
     private const int HOTKEY_TOGGLE = 1;
@@ -272,6 +274,7 @@ Version {version}";
             notifyIcon.Dispose();
         }
         
+        HideAdditionalMonitorWindows();
         controlWindow?.Close();
         
         base.OnClosed(e);
@@ -300,6 +303,9 @@ Version {version}";
     {
         isLightOn = !isLightOn;
         EdgeLightBorder.Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed;
+        
+        // Update all additional monitor windows
+        UpdateAdditionalMonitorWindows();
     }
 
     public void HandleToggle()
@@ -311,12 +317,55 @@ Version {version}";
     {
         currentOpacity = Math.Min(MaxOpacity, currentOpacity + OpacityStep);
         EdgeLightBorder.Opacity = currentOpacity;
+        
+        // Update all additional monitor windows
+        UpdateAdditionalMonitorWindows();
     }
 
     public void DecreaseBrightness()
     {
         currentOpacity = Math.Max(MinOpacity, currentOpacity - OpacityStep);
         EdgeLightBorder.Opacity = currentOpacity;
+        
+        // Update all additional monitor windows
+        UpdateAdditionalMonitorWindows();
+    }
+
+    private void UpdateAdditionalMonitorWindows()
+    {
+        foreach (var window in additionalMonitorWindows)
+        {
+            if (window.Content is System.Windows.Controls.Grid grid && 
+                grid.Children.Count > 0 && 
+                grid.Children[0] is System.Windows.Shapes.Path path)
+            {
+                path.Opacity = currentOpacity;
+                path.Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed;
+                
+                // Update color temperature
+                if (path.Fill is LinearGradientBrush brush && brush.GradientStops.Count >= 3)
+                {
+                    var cool = System.Windows.Media.Color.FromRgb(220, 235, 255);
+                    var warm = System.Windows.Media.Color.FromRgb(255, 220, 180);
+                    
+                    System.Windows.Media.Color Lerp(System.Windows.Media.Color a, System.Windows.Media.Color b, double t)
+                    {
+                        byte LerpByte(byte x, byte y, double tt) => (byte)(x + (y - x) * tt);
+                        return System.Windows.Media.Color.FromArgb(255, LerpByte(a.R, b.R, t), LerpByte(a.G, b.G, t), LerpByte(a.B, b.B, t));
+                    }
+                    
+                    var midColor = Lerp(cool, warm, _colorTemperature);
+                    
+                    foreach (var stop in brush.GradientStops)
+                    {
+                        if (stop.Offset is > 0.2 and < 0.8)
+                        {
+                            stop.Color = midColor;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void IncreaseColorTemperature()
@@ -365,10 +414,15 @@ Version {version}";
                 }
             }
         }
+        
+        // Update all additional monitor windows
+        UpdateAdditionalMonitorWindows();
     }
 
     public void MoveToNextMonitor()
     {
+        // If in all monitors mode, do nothing
+        if (showOnAllMonitors) return;
         // Refresh monitor list in case of hot-plug/unplug
         availableMonitors = Screen.AllScreens;
 
@@ -405,6 +459,150 @@ Version {version}";
         
         // Reposition control window to follow
         RepositionControlWindow();
+    }
+
+    public void ToggleAllMonitors()
+    {
+        showOnAllMonitors = !showOnAllMonitors;
+        
+        if (showOnAllMonitors)
+        {
+            ShowOnAllMonitors();
+        }
+        else
+        {
+            HideAdditionalMonitorWindows();
+        }
+
+        controlWindow?.UpdateAllMonitorsButtonState();
+    }
+
+    private void ShowOnAllMonitors()
+    {
+        // Refresh monitor list
+        availableMonitors = Screen.AllScreens;
+
+        // Close any existing additional windows
+        HideAdditionalMonitorWindows();
+
+        // Create a window for each monitor except the current one (this window)
+        for (int i = 0; i < availableMonitors.Length; i++)
+        {
+            if (i != currentMonitorIndex)
+            {
+                var monitorWindow = CreateMonitorWindow(availableMonitors[i]);
+                additionalMonitorWindows.Add(monitorWindow);
+                monitorWindow.Show();
+            }
+        }
+    }
+
+    private void HideAdditionalMonitorWindows()
+    {
+        foreach (var window in additionalMonitorWindows)
+        {
+            window.Close();
+        }
+        additionalMonitorWindows.Clear();
+    }
+
+    private Window CreateMonitorWindow(Screen screen)
+    {
+        var window = new Window
+        {
+            Title = "Windows Edge Light",
+            AllowsTransparency = true,
+            Background = System.Windows.Media.Brushes.Transparent,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+            Topmost = true,
+            WindowStyle = WindowStyle.None
+        };
+
+        // Position on the target screen
+        var workingArea = screen.WorkingArea;
+        var source = PresentationSource.FromVisual(this);
+        double dpiScaleX = 1.0;
+        double dpiScaleY = 1.0;
+        
+        if (source != null)
+        {
+            dpiScaleX = source.CompositionTarget.TransformToDevice.M11;
+            dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
+        }
+        
+        window.Left = workingArea.X / dpiScaleX;
+        window.Top = workingArea.Y / dpiScaleY;
+        window.Width = workingArea.Width / dpiScaleX;
+        window.Height = workingArea.Height / dpiScaleY;
+
+        // Create the grid and edge light border
+        var grid = new System.Windows.Controls.Grid { IsHitTestVisible = false };
+        var path = new System.Windows.Shapes.Path
+        {
+            HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+            VerticalAlignment = System.Windows.VerticalAlignment.Center,
+            Stretch = System.Windows.Media.Stretch.None,
+            Opacity = currentOpacity,
+            Visibility = isLightOn ? Visibility.Visible : Visibility.Collapsed
+        };
+
+        // Create gradient brush
+        var gradient = new LinearGradientBrush
+        {
+            StartPoint = new System.Windows.Point(0, 0),
+            EndPoint = new System.Windows.Point(1, 1)
+        };
+        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromRgb(255, 255, 255), 0.0));
+        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromRgb(240, 240, 240), 0.3));
+        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromRgb(255, 255, 255), 0.5));
+        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromRgb(240, 240, 240), 0.7));
+        gradient.GradientStops.Add(new GradientStop(System.Windows.Media.Color.FromRgb(255, 255, 255), 1.0));
+        path.Fill = gradient;
+
+        // Add drop shadow effect
+        path.Effect = new System.Windows.Media.Effects.DropShadowEffect
+        {
+            BlurRadius = 76,
+            Opacity = 1,
+            ShadowDepth = 0,
+            Color = System.Windows.Media.Color.FromRgb(255, 255, 255)
+        };
+
+        // Create frame geometry
+        double width = window.Width - 40;
+        double height = window.Height - 40;
+        const double frameThickness = 80;
+        const double outerRadius = 100;
+        const double innerRadius = 60;
+        
+        var outerRect = new RectangleGeometry(new Rect(0, 0, width, height), outerRadius, outerRadius);
+        var innerRect = new RectangleGeometry(
+            new Rect(frameThickness, frameThickness, 
+                    width - (frameThickness * 2), 
+                    height - (frameThickness * 2)), 
+            innerRadius, innerRadius);
+        
+        var frameGeometry = new CombinedGeometry(GeometryCombineMode.Exclude, outerRect, innerRect);
+        path.Data = frameGeometry;
+
+        grid.Children.Add(path);
+        window.Content = grid;
+
+        // Make window click-through
+        window.Loaded += (s, e) =>
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            int extendedStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+            SetWindowLong(hwnd, GWL_EXSTYLE, extendedStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+        };
+
+        return window;
+    }
+
+    public bool IsShowingOnAllMonitors()
+    {
+        return showOnAllMonitors;
     }
 
     private void RepositionControlWindow()
