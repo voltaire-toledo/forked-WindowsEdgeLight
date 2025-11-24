@@ -214,7 +214,12 @@ Version {version}";
     {
         controlWindow = new ControlWindow(this);
         RepositionControlWindow();
-        controlWindow.Show();
+        
+        // Only show if controls are supposed to be visible
+        if (isControlWindowVisible)
+        {
+            controlWindow.Show();
+        }
     }
 
     private void CreateFrameGeometry()
@@ -328,6 +333,7 @@ Version {version}";
     {
         isControlWindowVisible = !isControlWindowVisible;
         
+        // Apply visibility change if control window exists
         if (controlWindow != null)
         {
             if (isControlWindowVisible)
@@ -339,6 +345,8 @@ Version {version}";
                 controlWindow.Hide();
             }
         }
+        // Note: If controlWindow doesn't exist yet, isControlWindowVisible state
+        // is preserved and will be applied when CreateControlWindow() is called
         
         UpdateTrayMenuToggleControlsText();
     }
