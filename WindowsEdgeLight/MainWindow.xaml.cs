@@ -95,8 +95,8 @@ public partial class MainWindow : Window
     contextMenu.Items.Add("🔆 Brightness Up (Ctrl+Shift+↑)", null, (s, e) => IncreaseBrightness());
     contextMenu.Items.Add("🔅 Brightness Down (Ctrl+Shift+↓)", null, (s, e) => DecreaseBrightness());
     contextMenu.Items.Add(new ToolStripSeparator());
-    contextMenu.Items.Add("❄️ K- Warmer Light", null, (s, e) => IncreaseColorTemperature());
-    contextMenu.Items.Add("🔥 K+ Cooler Light", null, (s, e) => DecreaseColorTemperature());
+    contextMenu.Items.Add("🔥 K- Warmer Light", null, (s, e) => IncreaseColorTemperature());
+    contextMenu.Items.Add("❄️ K+ Cooler Light", null, (s, e) => DecreaseColorTemperature());
     contextMenu.Items.Add(new ToolStripSeparator());
     contextMenu.Items.Add("🖥️ Switch Monitor", null, (s, e) => MoveToNextMonitor());
     contextMenu.Items.Add("🖥️🖥️ Toggle All Monitors", null, (s, e) => ToggleAllMonitors());
@@ -123,7 +123,7 @@ public partial class MainWindow : Window
 • Global hotkeys work from any application
 • Right-click taskbar icon for full menu
 • Control toolbar with brightness, color temp, and monitor options
-• Color temperature controls (K- warmer, K+ cooler)
+• Color temperature controls (🔥 warmer, ❄️ cooler)
 • Switch between monitors or show on all monitors
 
 Created by Scott Hanselman
