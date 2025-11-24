@@ -12,13 +12,12 @@ A lightweight WPF application that adds a customizable glowing edge light effect
 - **Customizable Brightness**: Adjust opacity with easy-to-use controls
  - **Adjustable Color Temperature**: Shift the edge light from cooler (blue-ish) to warmer (amber) tones
 - **Toggle On/Off**: Quickly enable or disable the edge light effect
-- **Hideable Controls**: Hide the control toolbar for a cleaner look, restore via hotkey or tray menu
+- **Hideable Controls**: Hide the control toolbar for a cleaner look, restore via tray menu
 - **Always On Top**: Stays visible above all other windows
 - **Keyboard Shortcuts**: 
   - `Ctrl+Shift+L` - Toggle light on/off
   - `Ctrl+Shift+Up` - Increase brightness
   - `Ctrl+Shift+Down` - Decrease brightness
-  - `Ctrl+Shift+C` - Show/hide controls toolbar
 - **Gradient Effect**: Beautiful white gradient with subtle blur for a professional look
 
 ## Screenshots
@@ -87,14 +86,13 @@ The executable will be in `bin\Release\net10.0-windows\win-x64\publish\WindowsEd
    - 💡 **Toggle Light** - Turn the effect on/off
    - 🖥️ **Switch Monitor** - Move to next monitor (if multiple monitors)
    - ✖ **Exit** - Close the application
-4. Hide the control toolbar for a cleaner look using `Ctrl+Shift+C` or the tray menu
+4. Hide the control toolbar for a cleaner look using the tray menu (right-click tray icon → "Hide Controls")
 
 ### Keyboard Shortcuts
 
 - **Ctrl+Shift+L**: Toggle the edge light on/off
 - **Ctrl+Shift+Up**: Increase brightness
 - **Ctrl+Shift+Down**: Decrease brightness
-- **Ctrl+Shift+C**: Show/hide the control toolbar
 - **Taskbar**: Right-click the taskbar icon for a menu with toggle, brightness, and color temperature controls
 
 ## Technical Details

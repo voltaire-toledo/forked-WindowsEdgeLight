@@ -25,9 +25,6 @@ public partial class MainWindow : Window
     private const double MinColorTemp = 0.0;
     private const double MaxColorTemp = 1.0;
     
-    // Toggle controls constants
-    private const string ToggleControlsHotkeyText = " (Ctrl+Shift+C)";
-    
     private NotifyIcon? notifyIcon;
     private ControlWindow? controlWindow;
     // Tracks whether the control window should be visible (controls initial visibility and toggle state)
@@ -44,7 +41,6 @@ public partial class MainWindow : Window
     private const int HOTKEY_TOGGLE = 1;
     private const int HOTKEY_BRIGHTNESS_UP = 2;
     private const int HOTKEY_BRIGHTNESS_DOWN = 3;
-    private const int HOTKEY_TOGGLE_CONTROLS = 4;
 
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
@@ -110,7 +106,6 @@ public partial class MainWindow : Window
     private const uint VK_L = 0x4C;
     private const uint VK_UP = 0x26;
     private const uint VK_DOWN = 0x28;
-    private const uint VK_C = 0x43;
 
     public MainWindow()
     {
@@ -162,7 +157,7 @@ public partial class MainWindow : Window
     contextMenu.Items.Add(new ToolStripSeparator());
     
     // Add toggle controls menu item - text will be set by UpdateTrayMenuToggleControlsText
-    toggleControlsMenuItem = new ToolStripMenuItem("🎛️ Hide Controls" + ToggleControlsHotkeyText, null, (s, e) => ToggleControlsVisibility());
+    toggleControlsMenuItem = new ToolStripMenuItem("🎛️ Hide Controls", null, (s, e) => ToggleControlsVisibility());
     contextMenu.Items.Add(toggleControlsMenuItem);
     
     contextMenu.Items.Add(new ToolStripSeparator());
@@ -185,7 +180,6 @@ public partial class MainWindow : Window
 💡 Toggle Light:  Ctrl + Shift + L
 🔆 Brightness Up:  Ctrl + Shift + ↑
 🔅 Brightness Down:  Ctrl + Shift + ↓
-🎛️ Toggle Controls:  Ctrl + Shift + C
 
 💡 Features:
 • Click-through overlay - won't interfere with your work
@@ -264,7 +258,6 @@ Version {version}";
         RegisterHotKey(hwnd, HOTKEY_TOGGLE, MOD_CONTROL | MOD_SHIFT, VK_L);
         RegisterHotKey(hwnd, HOTKEY_BRIGHTNESS_UP, MOD_CONTROL | MOD_SHIFT, VK_UP);
         RegisterHotKey(hwnd, HOTKEY_BRIGHTNESS_DOWN, MOD_CONTROL | MOD_SHIFT, VK_DOWN);
-        RegisterHotKey(hwnd, HOTKEY_TOGGLE_CONTROLS, MOD_CONTROL | MOD_SHIFT, VK_C);
         
         // Hook into Windows message processing
         HwndSource source = HwndSource.FromHwnd(hwnd);
@@ -462,10 +455,6 @@ Version {version}";
                     DecreaseBrightness();
                     handled = true;
                     break;
-                case HOTKEY_TOGGLE_CONTROLS:
-                    ToggleControlsVisibility();
-                    handled = true;
-                    break;
             }
         }
         
@@ -480,7 +469,6 @@ Version {version}";
         UnregisterHotKey(hwnd, HOTKEY_TOGGLE);
         UnregisterHotKey(hwnd, HOTKEY_BRIGHTNESS_UP);
         UnregisterHotKey(hwnd, HOTKEY_BRIGHTNESS_DOWN);
-        UnregisterHotKey(hwnd, HOTKEY_TOGGLE_CONTROLS);
         
         if (notifyIcon != null)
         {
@@ -569,8 +557,7 @@ Version {version}";
     {
         if (toggleControlsMenuItem != null)
         {
-            var prefix = isControlWindowVisible ? "🎛️ Hide Controls" : "🎛️ Show Controls";
-            toggleControlsMenuItem.Text = prefix + ToggleControlsHotkeyText;
+            toggleControlsMenuItem.Text = isControlWindowVisible ? "🎛️ Hide Controls" : "🎛️ Show Controls";
         }
     }
 
