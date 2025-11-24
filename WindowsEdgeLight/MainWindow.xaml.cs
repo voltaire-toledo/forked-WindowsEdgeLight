@@ -773,6 +773,13 @@ Version {version}";
     {
         // Refresh monitor list
         availableMonitors = Screen.AllScreens;
+        
+        Debug.WriteLine($"[Topology] Primary DPI Scale: {_dpiScaleX:F2},{_dpiScaleY:F2}");
+        for (int i = 0; i < availableMonitors.Length; i++)
+        {
+            var s = availableMonitors[i];
+            Debug.WriteLine($"[Topology] Monitor {i}: Bounds:{s.Bounds} WorkingArea:{s.WorkingArea} Primary:{s.Primary}");
+        }
 
         // Close any existing additional windows
         HideAdditionalMonitorWindows();
@@ -785,6 +792,7 @@ Version {version}";
                 var monitorCtx = CreateMonitorWindow(availableMonitors[i]);
                 additionalMonitorWindows.Add(monitorCtx);
                 monitorCtx.Window.Show();
+                Debug.WriteLine($"[Window Creation] Monitor {i}: Window Left:{monitorCtx.Window.Left:F2} Top:{monitorCtx.Window.Top:F2} Width:{monitorCtx.Window.Width:F2} Height:{monitorCtx.Window.Height:F2}");
             }
         }
     }
