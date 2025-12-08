@@ -133,37 +133,25 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: artifacts/*.zip
+        generate_release_notes: true
         body: |
           ## Windows Edge Light ${{ github.ref_name }}
           
-          A lightweight WPF application that adds a customizable glowing edge light effect around your primary monitor.
-          
           ### 📦 Downloads
           
-          Choose the version for your Windows architecture:
+          | File | Platform |
+          |------|----------|
+          | `WindowsEdgeLight-${{ github.ref_name }}-win-x64.zip` | Intel/AMD 64-bit Windows |
+          | `WindowsEdgeLight-${{ github.ref_name }}-win-arm64.zip` | ARM64 Windows (Surface Pro X, etc.) |
           
-          - **WindowsEdgeLight-${{ github.ref_name }}-win-x64.zip** - For Intel/AMD 64-bit Windows
-          - **WindowsEdgeLight-${{ github.ref_name }}-win-arm64.zip** - For ARM64 Windows (Surface Pro X, etc.)
+          **Self-contained** - Extract and run, no .NET installation required.
           
-          **What's inside:** Each ZIP contains `WindowsEdgeLight.exe` and `README.md` (self-contained, no .NET required)
+          ### ⌨️ Keyboard Shortcuts
+          - `Ctrl+Shift+L` - Toggle light on/off
+          - `Ctrl+Shift+↑` - Increase brightness
+          - `Ctrl+Shift+↓` - Decrease brightness
           
-          ### ✨ What's New
-          
-          - **Automatic Updates**: Built-in update checker notifies you of new versions
-          - **One-Click Install**: Download and install updates directly from the app
-          - **Release Notes**: View what's new before updating
-          
-          ### 🚀 Features
-          
-          - **Global Hotkeys**: Control from any application
-            - `Ctrl+Shift+L` - Toggle light on/off
-            - `Ctrl+Shift+↑` - Increase brightness
-            - `Ctrl+Shift+↓` - Decrease brightness
-          - **System Tray Icon**: Right-click for menu with all options
-          - **Primary Monitor Display**: Automatically detects and fits your main screen
-          - **DPI Aware**: Works perfectly on 4K displays
-          - **Click-Through**: Won't interfere with your work
-          
-          Created by Scott Hanselman
+          ---
+        append_body: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
